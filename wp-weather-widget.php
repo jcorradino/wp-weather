@@ -86,26 +86,27 @@ class WP_Weather_Widget extends WP_Widget {
 	public function widget( $args, $instance ){
 		extract($args);
 		extract($instance);
+		$options['datafeature'] = "5day"; // Remove once I've added more
 		$weather = new wp_weather();
+		$weather->data_lookup = $options['datafeature'];
 		$options = get_option('wp_weather_options');
 		$conditions = $weather->get_current_conditions($instance["zip"]);
 		$image_path = ($options['imageset']!="") ? "http://icons-ak.wxug.com/i/c/{$options['imageset']}/" : "http://icons-ak.wxug.com/i/c/k/";
 
 		echo $before_widget;
 		
-
-		?>
-		<section class="wp_weather">
-			<?php if ($instance['widget_title'] != "") { ?>
-				<h1 class="content-headline"><?php echo $instance['widget_title']; ?></h1>
-			<?php } ?>
-			<h3 class="location"><?php echo $conditions->current_observation->display_location->full?></h3>
-			<img src="<?php echo $image_path.$conditions->current_observation->icon; ?>.gif" title="<?php echo $conditions->current_observation->weather; ?>">
-			<span class="current-conditions"><?php echo $conditions->current_observation->weather; ?></span>
-			<span class="temp"><?php echo round($conditions->current_observation->temp_f); ?>&deg; F</span>
-		</section>
-		<?php
-
+		// Template hierarchy for weather widget, will go down the list and include the first file it encounters.  Uses below filter to set filepath.
+		$path = trailingslashit(apply_filters('weather_widget_template_path', ''));
+		$weather_widget_hierarchy = array(
+			"{$path}weather-widget-{$options['datafeature']}.php",
+			"{$path}weather-widget.php"
+		);
+		
+		
+		if (!locate_template($weather_widget_hierarchy, true)) {
+			require plugin_dir_path( __FILE__ )."views/{$weather->data_lookup}.php";
+		}
+		
 		//print_r($conditions);
 
 		echo $after_widget;
@@ -193,19 +194,21 @@ class WP_Weather_Widget extends WP_Widget {
 			'label' => 'Fixed Zip Code'
 		);
 		
-		$fields[] = array(
-			'field_id' => 'datafeature',
-			'type' => 'select',
-			'label' => 'Queried Data',
-			'options' => array(
-				//'alerts' => "Alerts",
-				'conditions' => 'Current Conditions',
-				//'3day' => 'Three Day Forecast',
-				//'5day' => 'Five Day Forecast',
-				'forecast-7' => 'Seven Day Forecast',
-				'forecast-10' => 'Ten Day Forecast'
-			)
-		);
+		// $fields[] = array(
+		// 	'field_id' => 'datafeature',
+		// 	'type' => 'select',
+		// 	'label' => 'Queried Data',
+		// 	'options' => array(
+		// 		//'alerts' => "Alerts",
+		// 		'conditions' => 'Current Conditions',
+		// 		//'3day' => 'Three Day Forecast',
+		// 		//'5day' => 'Five Day Forecast',
+		// 		//'forecast-7' => 'Seven Day Forecast',
+		// 		//'forecast-10' => 'Ten Day Forecast'
+		// 	)
+		// );
+		
+
 		
 		$this->form_fields($fields, $instance);
 		
@@ -309,7 +312,11 @@ class WP_Weather_Widget extends WP_Widget {
 					<label for="<?php echo $this->get_field_id( $field_id ); ?>"><?php echo $label; ?></label>
 
 				<?php break;
-
+				
+			case 'hidden': ?>
+					<input id="<?php echo $this->get_field_id( $field_id ); ?>" type="hidden" style="<?php echo (isset($style)) ? $style : ''; ?>" class="widefat" name="<?php echo $this->get_field_name( $field_id ); ?>" value="<?php echo $input_value; ?>" />
+			
+			<?php break;
 		}
 		
 		?></p><?php

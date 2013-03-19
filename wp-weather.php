@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 include_once("wp-weather-widget.php");
 
 class WP_Weather_Admin {
+	
 	/**
 	 * Initializes WP Weather Admin Setup
 	 *
@@ -48,11 +49,11 @@ class WP_Weather_Admin {
 			wp_enqueue_script('media-upload');
 			wp_enqueue_script('thickbox');
 			wp_enqueue_style('thickbox');
-			wp_register_script('wp-weather-script', WP_PLUGIN_URL.'/wp-weather/assets/wp-weather.js', array('jquery','media-upload','thickbox'));
+			wp_register_script('wp-weather-script', plugin_dir_path( __FILE__ ).'/wp-weather/assets/wp-weather.js', array('jquery','media-upload','thickbox'));
 			wp_enqueue_script('wp-weather-script');
-			wp_register_style( 'wp-weather-sprite-template', WP_PLUGIN_URL.'/wp-weather/assets/wp-weather-sprite-template.css');
+			wp_register_style( 'wp-weather-sprite-template', plugin_dir_path( __FILE__ ).'/wp-weather/assets/wp-weather-sprite-template.css');
 			wp_enqueue_style( 'wp-weather-sprite-template' );
-			wp_register_style( 'wp-weather-admin-style', WP_PLUGIN_URL.'/wp-weather/assets/wp-weather-admin.css');
+			wp_register_style( 'wp-weather-admin-style', plugin_dir_path( __FILE__ ).'/wp-weather/assets/wp-weather-admin.css');
 			wp_enqueue_style( 'wp-weather-admin-style' );
 		};
 		register_setting( 'wp_weather_options', 'wp_weather_options', array(__CLASS__, "validate_fields"));
@@ -267,6 +268,8 @@ class WP_Weather_Admin {
 
 class WP_Weather {
 	
+	var $data_lookup;
+	
 	/**
 	 * Fetches current conditions
 	 *
@@ -278,21 +281,20 @@ class WP_Weather {
 	 */
 	function get_current_conditions($zip="") {
 		$user = get_current_user_id();
-		$city  = get_user_meta( $user, 'user_city', true );
-		$state = get_user_meta( $user, 'user_state', true );
+		$userlocation  = get_user_meta( $user, 'user_zipcode', true );
 		if ($zip != "") { // use pre-set zip
-			$transient = get_transient("conditions-$zip");
+			//$transient = get_transient("{$this->data_lookup}-$zip");
 			if ($transient == "") {
 				$conditions = $this->wunderground_api($zip);
-				set_transient("conditions-$zip", $conditions, 900);
+				set_transient("{$this->data_lookup}-$zip", $conditions, 900);
 			} else {
 				$conditions = $transient;
 			}
-		} elseif  ($city != "" && $state != "") { // use user state/city
-			$transient = get_transient("conditions-$city-$state");
+		} elseif  ($userLocation != "") { // use user state/city
+			$transient = get_transient("{$this->data_lookup}-$userLocation");
 			if ($transient == "") {
-				$contions = $this->wunderground_api("$state/$city");
-				set_transient("conditions-$city-$state", $conditions, 900);
+				$contions = $this->wunderground_api("$userLocation");
+				set_transient("{$this->data_lookup}-$userLocation", $conditions, 900);
 			} else {
 				$conditions = $transient;
 			}
@@ -302,10 +304,10 @@ class WP_Weather {
 				$coords['lon'] = $location->longitude;
 				$coords['lat'] = $location->latitude;
 				$locationCode = ($location->zipCode != "" && $location->zipCode != "-") ? $location->zipCode : "{$location->countryCode}-{$location->cityName}";
-				$transient = get_transient("conditions-$locationCode");
+				$transient = get_transient("{$this->data_lookup}-$locationCode");
 				if ($transient == "") {
 					$conditions = $this->wunderground_api("{$coords['lat']},{$coords['lon']}");
-					set_transient("conditions-$locationCode", $conditions, 900);
+					set_transient("{$this->data_lookup}-$locationCode", $conditions, 900);
 				} else {
 					$conditions = $transient;
 				}
@@ -353,7 +355,9 @@ class WP_Weather {
 	 */
 	function wunderground_api($query) {
 		$options = get_option('wp_weather_options');
-		$uri = "http://api.wunderground.com/api/{$options['wunderground_api']}/conditions/q/$query.json";
+		if ($this->data_lookup == "5day") {$api = "forecast10day";}
+			else {$api = $this->data_lookup;}
+		$uri = "http://api.wunderground.com/api/{$options['wunderground_api']}/$api/q/$query.json";
 		$data = json_decode($this->get_data($uri));
 		if ($data->response->error != "") {
 			return false;

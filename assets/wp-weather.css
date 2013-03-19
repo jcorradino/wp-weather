@@ -1,4 +1,4 @@
-.weather_chanceflurries, .weather_chancerain, .weather_chancesleet, .weather_chancesnow, .weather_chancetstorms, .weather_clear, .weather_cloudy, .weather_flurries, .weather_fog, .weather_hazy, .weather_mostlycloudy, .weather_mostlysunny, .weather_partlycloudy, .weather_partlysunny, .weather_sleet, .weather_rain, .weather_snow, .weather_sunny, .weather_tstorms {background-image: url(http://comm.local/wp-content/uploads/2013/02/test2.png);}
+.weather_chanceflurries, .weather_chancerain, .weather_chancesleet, .weather_chancesnow, .weather_chancetstorms, .weather_clear, .weather_cloudy, .weather_flurries, .weather_fog, .weather_hazy, .weather_mostlycloudy, .weather_mostlysunny, .weather_partlycloudy, .weather_partlysunny, .weather_sleet, .weather_rain, .weather_snow, .weather_sunny, .weather_tstorms {background-image: url();}
 .weather_chanceflurries {background-position: 0 0;}
 .weather_chancerain {background-position: -52px 0;}
 .weather_chancesleet {background-position: -104px 0;}
