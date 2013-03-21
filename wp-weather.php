@@ -270,7 +270,59 @@ class WP_Weather {
 	
 	var $data_lookup;
 	
-	var $location;
+	var $city_state;
+	
+	private $_state_abbr = array('AL'=>"Alabama",
+				                'AK'=>"Alaska", 
+				                'AZ'=>"Arizona", 
+				                'AR'=>"Arkansas", 
+				                'CA'=>"California", 
+				                'CO'=>"Colorado", 
+				                'CT'=>"Connecticut", 
+				                'DE'=>"Delaware", 
+								'DC'=>"District of Columbia",
+				                'FL'=>"Florida", 
+				                'GA'=>"Georgia", 
+				                'HI'=>"Hawaii", 
+				                'ID'=>"Idaho", 
+				                'IL'=>"Illinois", 
+				                'IN'=>"Indiana", 
+				                'IA'=>"Iowa", 
+				                'KS'=>"Kansas", 
+				                'KY'=>"Kentucky", 
+				                'LA'=>"Louisiana", 
+				                'ME'=>"Maine", 
+				                'MD'=>"Maryland", 
+				                'MA'=>"Massachusetts", 
+				                'MI'=>"Michigan", 
+				                'MN'=>"Minnesota", 
+				                'MS'=>"Mississippi", 
+				                'MO'=>"Missouri", 
+				                'MT'=>"Montana",
+				                'NE'=>"Nebraska",
+				                'NV'=>"Nevada",
+				                'NH'=>"New Hampshire",
+				                'NJ'=>"New Jersey",
+				                'NM'=>"New Mexico",
+				                'NY'=>"New York",
+				                'NC'=>"North Carolina",
+				                'ND'=>"North Dakota",
+				                'OH'=>"Ohio", 
+				                'OK'=>"Oklahoma", 
+				                'OR'=>"Oregon", 
+				                'PA'=>"Pennsylvania", 
+				                'RI'=>"Rhode Island", 
+				                'SC'=>"South Carolina", 
+				                'SD'=>"South Dakota",
+				                'TN'=>"Tennessee", 
+				                'TX'=>"Texas", 
+				                'UT'=>"Utah", 
+				                'VT'=>"Vermont", 
+				                'VA'=>"Virginia", 
+				                'WA'=>"Washington", 
+				                'WV'=>"West Virginia", 
+				                'WI'=>"Wisconsin", 
+				                'WY'=>"Wyoming");
 	
 	/**
 	 * Fetches current conditions
@@ -283,21 +335,33 @@ class WP_Weather {
 	 */
 	function get_current_conditions($zip="") {
 		$user = get_current_user_id();
-		$userlocation  = get_user_meta( $user, 'user_zipcode', true );
+		$userLocation  = get_user_meta( $user, 'user_zipcode', true );
+		$usercity  = get_user_meta( $user, 'user_city', true );
+		$userstate  = get_user_meta( $user, 'user_state', true );
 		if ($zip != "") { // use pre-set zip
 			$transient = get_transient("{$this->data_lookup}-$zip");
-			$this->location = $zip;
+			$this->city_state = $this->zip2loc($zip);
 			if ($transient == "") {
 				$conditions = $this->wunderground_api($zip);
 				set_transient("{$this->data_lookup}-$zip", $conditions, 900);
 			} else {
 				$conditions = $transient;
 			}
-		} elseif  ($userLocation != "") { // use user state/city
-			$transient = get_transient("{$this->data_lookup}-$userLocation");
-			$this->location = $userLocation;
+		} elseif ($_COOKIE["weather_location"] != "" || $_POST['update_zipcode'] != "") {
+			$czip = $_POST["update_zipcode"] ? $_POST["update_zipcode"] : $_COOKIE["weather_location"];
+			$transient = get_transient("{$this->data_lookup}-$czip");
+			$this->city_state = $this->zip2loc($czip);
 			if ($transient == "") {
-				$contions = $this->wunderground_api("$userLocation");
+				$conditions = $this->wunderground_api($czip);
+				set_transient("{$this->data_lookup}-$czip", $conditions, 900);
+			} else {
+				$conditions = $transient;
+			}
+		} elseif  ($userLocation != "") { // use user zip
+			$transient = get_transient("{$this->data_lookup}-$userLocation");
+			$this->city_state = "$usercity, $userstate";
+			if ($transient == "") {
+				$conditions = $this->wunderground_api("$userLocation");
 				set_transient("{$this->data_lookup}-$userLocation", $conditions, 900);
 			} else {
 				$conditions = $transient;
@@ -305,17 +369,17 @@ class WP_Weather {
 		} else { // lookup weather based on IP location
 			$location = $this->location_api();
 			if ($location->statusCode == "OK") {
-				$coords['lon'] = $location->longitude;
-				$coords['lat'] = $location->latitude;
-				$locationCode = ($location->zipCode != "" && $location->zipCode != "-") ? $location->zipCode : "{$location->countryCode}-{$location->cityName}";
-				$transient = get_transient("{$this->data_lookup}-$locationCode");
+				//$coords['lon'] = $location->longitude;
+				//$coords['lat'] = $location->latitude;
+				//$locationCode = ($location->zipCode != "" && $location->zipCode != "-") ? $location->zipCode : "{$location->countryCode}-{$location->cityName}";
+				$transient = get_transient("{$this->data_lookup}-{$location->zipCode}");
 				if ($transient == "") {
-					$conditions = $this->wunderground_api("{$coords['lat']},{$coords['lon']}");
+					$conditions = $this->wunderground_api("{$location->zipCode}");
 					set_transient("{$this->data_lookup}-$locationCode", $conditions, 900);
 				} else {
 					$conditions = $transient;
 				}
-				$this->location = $location->zipCode;
+				$this->city_state = $this->zip2loc($location->zipCode);
 			}
 		}
 		
@@ -335,9 +399,9 @@ class WP_Weather {
 	 */
 	function location_api() {
 		$options = get_option('wp_weather_options');
-		$uri = 'http://api.ipinfodb.com/v3/ip-city/?key='.$options["ipinfodb_api"].'&format=xml&ip='.$_SERVER['REMOTE_ADDR'];
+		//$uri = 'http://api.ipinfodb.com/v3/ip-city/?key='.$options["ipinfodb_api"].'&format=xml&ip='.$_SERVER['REMOTE_ADDR'];
 		//$uri = 'http://api.ipinfodb.com/v3/ip-city/?key='.$options["ipinfodb_api"].'&format=xml&ip=141.101.116.82'; // London
-		//$uri = 'http://api.ipinfodb.com/v3/ip-city/?key='.$options["ipinfodb_api"].'&format=xml&ip=12.34.4.33'; // Chicago
+		$uri = 'http://api.ipinfodb.com/v3/ip-city/?key='.$options["ipinfodb_api"].'&format=xml&ip=12.34.4.33'; // Chicago
 		$data = $this->get_data($uri);
 		if(substr_count($data,'ode>ERROR') ){
 			return false;
@@ -363,12 +427,53 @@ class WP_Weather {
 		if ($this->data_lookup == "5day") {$api = "forecast10day";}
 			else {$api = $this->data_lookup;}
 		$uri = "http://api.wunderground.com/api/{$options['wunderground_api']}/$api/q/$query.json";
-		$data = json_decode($this->get_data($uri));
+		$return = $this->get_data($uri);
+		$data = json_decode($return);
 		if ($data->response->error != "") {
 			return false;
 		} else {
 			return $data;
 		}
+	}
+	
+	/**
+	 * Converts zip code to "city, state" format
+	 *
+	 * @param string|int [REQUIRED] $zip		User's zip code
+	 *
+	 * @author Jason Corradino
+	 *
+	 * @return string	City and state
+	 */
+	function zip2loc($zip) {
+		$transient = get_transient("citystate-$zip");
+		if ($transient == "") {
+			$uri = "http://zip.elevenbasetwo.com/v2/US/$zip";
+			$json = $this->get_data($uri);
+			$location = json_decode($json);
+			$loc_string = $location->city.", ".$this->state2abbr($location->state);
+			set_transient("citystate-$zip", $loc_string, 432000);
+			return $loc_string;
+		} else {
+			return $transient;
+		}
+	}
+	
+	/**
+	 * Looks up state abbreviation
+	 *
+	 * @param string [REQUIRED] $state		User's state
+	 *
+	 * @author Jason Corradino
+	 *
+	 * @return string	State abbreviation
+	 */
+	function state2abbr($state) {
+		$abbr = array_search(trim($state), $this->_state_abbr);
+		if($abbr !== false) {
+			return $abbr;
+		}
+		return $state;
 	}
 	
 	/**
@@ -382,8 +487,8 @@ class WP_Weather {
 	 *
 	 * @return array	API response
 	 */
-	function get_data($uri, $timeout=2) {
-		if($timeout==0 or !$timeout){$timeout=2;}
+	function get_data($uri, $timeout=5) {
+		if($timeout==0 or !$timeout){$timeout=5;}
 		if(ini_get('allow_url_fopen')) {
 			$opts = array('http' => array('timeout' => $timeout));
 			$context  = stream_context_create($opts);

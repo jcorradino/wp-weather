@@ -92,24 +92,19 @@ class WP_Weather_Widget extends WP_Widget {
 		$options = get_option('wp_weather_options');
 		$conditions = $weather->get_current_conditions($instance["zip"]);
 		$image_path = ($options['imageset']!="") ? "http://icons-ak.wxug.com/i/c/{$options['imageset']}/" : "http://icons-ak.wxug.com/i/c/k/";
-
-		echo $before_widget;
-		
-		// Template hierarchy for weather widget, will go down the list and include the first file it encounters.  Uses below filter to set filepath.
-		$path = trailingslashit(apply_filters('weather_widget_template_path', ''));
-		$weather_widget_hierarchy = array(
-			"{$path}weather-widget-{$weather->data_lookup}.php",
-			"{$path}weather-widget.php"
-		);
-		
-		//print_r($weather_widget_hierarchy);
-		if (!include(locate_template($weather_widget_hierarchy))) {
-			require plugin_dir_path( __FILE__ )."views/{$weather->data_lookup}.php";
+		if ($conditions != "") {
+			echo $before_widget;
+			// Template hierarchy for weather widget, will go down the list and include the first file it encounters.  Uses below filter to set filepath.
+			$path = trailingslashit(apply_filters('weather_widget_template_path', ''));
+			$weather_widget_hierarchy = array(
+				"{$path}weather-widget-{$weather->data_lookup}.php",
+				"{$path}weather-widget.php"
+			);
+			if (!include(locate_template($weather_widget_hierarchy))) {
+				require plugin_dir_path( __FILE__ )."views/{$weather->data_lookup}.php";
+			}
+			echo $after_widget;
 		}
-		
-		//print_r($conditions);
-
-		echo $after_widget;
 		
 	}
 	
