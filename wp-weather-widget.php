@@ -98,12 +98,12 @@ class WP_Weather_Widget extends WP_Widget {
 		// Template hierarchy for weather widget, will go down the list and include the first file it encounters.  Uses below filter to set filepath.
 		$path = trailingslashit(apply_filters('weather_widget_template_path', ''));
 		$weather_widget_hierarchy = array(
-			"{$path}weather-widget-{$options['datafeature']}.php",
+			"{$path}weather-widget-{$weather->data_lookup}.php",
 			"{$path}weather-widget.php"
 		);
 		
-		
-		if (!locate_template($weather_widget_hierarchy, true)) {
+		//print_r($weather_widget_hierarchy);
+		if (!include(locate_template($weather_widget_hierarchy))) {
 			require plugin_dir_path( __FILE__ )."views/{$weather->data_lookup}.php";
 		}
 		

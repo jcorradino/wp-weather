@@ -270,6 +270,8 @@ class WP_Weather {
 	
 	var $data_lookup;
 	
+	var $location;
+	
 	/**
 	 * Fetches current conditions
 	 *
@@ -283,7 +285,8 @@ class WP_Weather {
 		$user = get_current_user_id();
 		$userlocation  = get_user_meta( $user, 'user_zipcode', true );
 		if ($zip != "") { // use pre-set zip
-			//$transient = get_transient("{$this->data_lookup}-$zip");
+			$transient = get_transient("{$this->data_lookup}-$zip");
+			$this->location = $zip;
 			if ($transient == "") {
 				$conditions = $this->wunderground_api($zip);
 				set_transient("{$this->data_lookup}-$zip", $conditions, 900);
@@ -292,6 +295,7 @@ class WP_Weather {
 			}
 		} elseif  ($userLocation != "") { // use user state/city
 			$transient = get_transient("{$this->data_lookup}-$userLocation");
+			$this->location = $userLocation;
 			if ($transient == "") {
 				$contions = $this->wunderground_api("$userLocation");
 				set_transient("{$this->data_lookup}-$userLocation", $conditions, 900);
@@ -311,6 +315,7 @@ class WP_Weather {
 				} else {
 					$conditions = $transient;
 				}
+				$this->location = $location->zipCode;
 			}
 		}
 		
