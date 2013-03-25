@@ -381,6 +381,7 @@ class WP_Weather {
 				}
 				$this->city_state = $this->zip2loc($location->zipCode);
 			}
+			$this->location = $location;
 		}
 		
 		if ($conditions != "") {
@@ -399,9 +400,9 @@ class WP_Weather {
 	 */
 	function location_api() {
 		$options = get_option('wp_weather_options');
-		//$uri = 'http://api.ipinfodb.com/v3/ip-city/?key='.$options["ipinfodb_api"].'&format=xml&ip='.$_SERVER['REMOTE_ADDR'];
+		$uri = 'http://api.ipinfodb.com/v3/ip-city/?key='.$options["ipinfodb_api"].'&format=xml&ip='.$_SERVER['REMOTE_ADDR'];
 		//$uri = 'http://api.ipinfodb.com/v3/ip-city/?key='.$options["ipinfodb_api"].'&format=xml&ip=141.101.116.82'; // London
-		$uri = 'http://api.ipinfodb.com/v3/ip-city/?key='.$options["ipinfodb_api"].'&format=xml&ip=12.34.4.33'; // Chicago
+		//$uri = 'http://api.ipinfodb.com/v3/ip-city/?key='.$options["ipinfodb_api"].'&format=xml&ip=12.34.4.33'; // Chicago
 		$data = $this->get_data($uri);
 		if(substr_count($data,'ode>ERROR') ){
 			return false;
