@@ -366,6 +366,16 @@ class WP_Weather {
 			} else {
 				$conditions = $transient;
 			}
+		} 	elseif ($_COOKIE["zipCode"] != "") { // use cookie set by Sears/Kmart
+				$czip = $_COOKIE["zipCode"];
+				$transient = get_transient("{$this->data_lookup}-$czip");
+				$this->city_state = $this->zip2loc($czip);
+				if ($transient == "") {
+					$conditions = $this->wunderground_api($czip);
+					set_transient("{$this->data_lookup}-$czip", $conditions, 900);
+				} else {
+					$conditions = $transient;
+				}
 		} else { // lookup weather based on IP location
 			$location = $this->location_api();
 			if ($location->statusCode == "OK") {
