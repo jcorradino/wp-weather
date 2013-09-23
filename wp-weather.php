@@ -332,12 +332,26 @@ class WP_Weather {
 	 * @author Jason Corradino
 	 *
 	 * @return object	Weather information
-	 */
+	 */ 
 	function get_current_conditions($zip="") {
+		
 		$user = get_current_user_id();
-		$userLocation  = get_user_meta( $user, 'user_zipcode', true );
-		$usercity  = get_user_meta( $user, 'user_city', true );
-		$userstate  = get_user_meta( $user, 'user_state', true );
+		
+		if(class_exists('SSO_User')) {
+			
+			$user_data = SSO_User::factory()->get_by_id($user);
+			
+			$userLocation  = $user_data->zipcode;
+			$usercity  = $user_data->city;
+			$userstate  = $user_data->state;
+			
+		} else {
+			
+			$userLocation = '';
+			$usercity = '';
+			$userstate = '';
+		}
+		
 		if ($zip != "") { // use pre-set zip
 			$transient = get_transient("{$this->data_lookup}-$zip");
 			$this->city_state = $this->zip2loc($zip);
